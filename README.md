@@ -1,4 +1,4 @@
-> **This is an unofficial fork.** It builds Xodus Nexus as a native arm64 AppImage for ArmadaOS. It is not part of Xodus Nexus. Do not report problems with this build to the Xodus Nexus developer. To install it, use [xodus-nexus-armada-arm](https://github.com/burghr/xodus-nexus-armada-arm) with `./install.sh --arm`. The changes are in [ARM64.md](ARM64.md).
+> **This is an unofficial fork.** It builds Xodus Nexus as a native arm64 AppImage for ArmadaOS. It is not part of Xodus Nexus. Do not report problems with this build to the Xodus Nexus developer. To install it, use [xodus-nexus-armada-arm](https://github.com/burghr/xodus-nexus-armada-arm) with `./install.sh`. The changes are in [ARM64.md](ARM64.md).
 
 <div align="center">
 
