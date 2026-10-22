@@ -1,6 +1,6 @@
-# arm64 proof of concept
+# arm64 build
 
-This private branch builds Xodus Nexus as a native arm64 AppImage for
+This branch builds Xodus Nexus as a native arm64 AppImage for
 ArmadaOS. It is not an official build.
 
 Changes from upstream:
