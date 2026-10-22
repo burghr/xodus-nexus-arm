@@ -13,6 +13,9 @@ Changes from upstream:
   also send the artwork to the running Steam client through its CEF debug
   port (127.0.0.1:8080). Decky Loader opens that port. Without it, Steam
   shows the artwork after its next start, as upstream does.
+- `src/main/index.ts`: open the window maximized when the default or saved
+  size is as large as the screen work area. On a small handheld screen, the
+  title bar and the panel otherwise hide the bottom of the window.
 
 The Wine runtime and the games stay x86_64 and run through FEX.
 
