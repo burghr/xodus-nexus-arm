@@ -61,7 +61,8 @@ export async function installBackend(
   validate: (cli: string) => Promise<void>, assertIdle: () => Promise<void>,
   phase: (message: string) => void, runner: typeof run = run,
 ): Promise<string> {
-  if (process.platform !== 'linux' || process.arch !== 'x64') throw new Error('The prebuilt backend currently supports x86_64 Linux only.');
+  // arm64 fork: the backend stays x86_64. On ArmadaOS, FEX runs it through binfmt_misc.
+  if (process.platform !== 'linux' || (process.arch !== 'x64' && process.arch !== 'arm64')) throw new Error('The prebuilt backend currently supports x86_64 Linux only.');
   await assertIdle();
   const manifest = validateBackendManifest(artifact.manifest);
   const staging = path.join(managedRoot, `.download-${randomUUID()}`);

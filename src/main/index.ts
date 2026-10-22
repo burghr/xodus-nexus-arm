@@ -208,6 +208,9 @@ function snapshot(): AppSnapshot {
 }
 
 async function checkLauncherUpdate(): Promise<void> {
+  // arm64 fork: upstream releases are x86_64 only. An update would replace
+  // this native build with the x86_64 AppImage, so do not check.
+  if (process.arch !== 'x64') return;
   await launcherUpdater.check();
 }
 
@@ -1721,7 +1724,7 @@ app.whenReady().then(async () => {
       return picture.resize({ width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)), quality: 'best' }).toDataURL();
     } catch { return undefined; }
   });
-  launcherUpdater = new LauncherUpdater(app.getVersion(), app.isPackaged ? process.env.APPIMAGE : undefined, app.getPath('userData'), scheduleSnapshot);
+  launcherUpdater = new LauncherUpdater(app.getVersion(), app.isPackaged && process.arch === 'x64' ? process.env.APPIMAGE : undefined, app.getPath('userData'), scheduleSnapshot);
   await launcherUpdater.initialize();
   const dataHome = process.env.XDG_DATA_HOME && path.isAbsolute(process.env.XDG_DATA_HOME)
     ? process.env.XDG_DATA_HOME : path.join(os.homedir(), '.local', 'share');
