@@ -2,7 +2,14 @@ import { execFile } from 'node:child_process';
 import { constants, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { externalLauncherEnvironment } from './launcher-environment.js';
-import { findSteamLaunches, readSteamShortcuts, writeSteamArtwork, type SteamLaunch } from './steam-shortcuts.js';
+import { pushSteamArtworkLive } from './steam-cdp.js';
+import { findSteamLaunches, readSteamShortcuts, writeSteamArtwork as writeArtworkFiles, type SteamLaunch } from './steam-shortcuts.js';
+
+// arm64 fork: also show the artwork in the running Steam client at once.
+async function writeSteamArtwork(config: string, appid: number, artwork: { cover?: Buffer; wide?: Buffer }): Promise<void> {
+  await writeArtworkFiles(config, appid, artwork);
+  await pushSteamArtworkLive(appid, artwork);
+}
 
 let importing = false;
 const sentinel = '/tmp/addnonsteamgamefile';

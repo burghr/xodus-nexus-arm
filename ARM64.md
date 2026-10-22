@@ -9,6 +9,10 @@ Changes from upstream:
   and FEX runs it through binfmt_misc.
 - `src/main/index.ts`: no launcher self-update on arm64. Upstream releases
   are x86_64 only, and an update would replace this build.
+- `src/main/steam-cdp.ts`, `src/main/steam-live.ts`: after "Add to Steam",
+  also send the artwork to the running Steam client through its CEF debug
+  port (127.0.0.1:8080). Decky Loader opens that port. Without it, Steam
+  shows the artwork after its next start, as upstream does.
 
 The Wine runtime and the games stay x86_64 and run through FEX.
 
