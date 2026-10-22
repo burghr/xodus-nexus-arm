@@ -38,3 +38,10 @@ The result is `release/Xodus-Nexus-<version>-arm64.AppImage`.
 git fetch upstream --tags
 git merge v<new version>
 ```
+
+This fork has its own short `README.md`. If the merge has a conflict in that file, keep the fork version:
+
+```bash
+git checkout --ours README.md
+git add README.md
+```
