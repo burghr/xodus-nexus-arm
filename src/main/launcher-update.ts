@@ -4,28 +4,35 @@ import path from 'node:path';
 import type { LauncherUpdate } from '../shared/types.js';
 import { isNewerVersion } from '../shared/utils.js';
 
-const REPO = 'domsvoboda/xodus-nexus';
+// arm64 fork: on Linux arm64, update from the fork releases (tags such as
+// v0.3.11-arm.2, asset *-arm64.AppImage). Other systems keep the upstream source.
+const ARM_FORK = process.platform === 'linux' && process.arch === 'arm64';
+const REPO = ARM_FORK ? 'burghr/xodus-nexus-arm' : 'domsvoboda/xodus-nexus';
 const API = `https://api.github.com/repos/${REPO}/releases?per_page=100`;
 interface Asset { name: string; browser_download_url: string; size: number }
 interface Release { tag_name: string; draft?: boolean; prerelease?: boolean; assets: Asset[] }
 export interface LauncherCandidate { version: string; image: Asset; checksum: Asset; releaseUrl: string }
 
-function assetUrl(url: string, tag: string, name: string): boolean {
-  return url === `https://github.com/${REPO}/releases/download/${tag}/${name}`;
+function assetUrl(url: string, tag: string, name: string, repo = REPO): boolean {
+  return url === `https://github.com/${repo}/releases/download/${tag}/${name}`;
 }
-export function launcherCandidate(releases: Release[], current: string): LauncherCandidate | undefined {
-  const stable = releases.filter(r => !r.draft && !r.prerelease && /^v\d+\.\d+\.\d+$/.test(r.tag_name));
+export function launcherCandidate(releases: Release[], current: string, arm = ARM_FORK): LauncherCandidate | undefined {
+  const repo = arm ? 'burghr/xodus-nexus-arm' : 'domsvoboda/xodus-nexus';
+  const tag = arm ? /^v\d+\.\d+\.\d+-arm\.\d+$/ : /^v\d+\.\d+\.\d+$/;
+  const stable = releases.filter(r => !r.draft && !r.prerelease && tag.test(r.tag_name));
   stable.sort((a, b) => isNewerVersion(a.tag_name, b.tag_name) ? -1 : isNewerVersion(b.tag_name, a.tag_name) ? 1 : 0);
   for (const r of stable) {
     if (!isNewerVersion(r.tag_name, current)) continue;
-    const name = `Xodus-Nexus-${r.tag_name.slice(1)}-x86_64.AppImage`;
+    const images = arm ? r.assets?.filter(a => /^Xodus-Nexus-[A-Za-z0-9._-]+-arm64\.AppImage$/.test(a.name)) ?? [] : [];
+    if (arm && images.length !== 1) continue;
+    const name = arm ? images[0].name : `Xodus-Nexus-${r.tag_name.slice(1)}-x86_64.AppImage`;
     const image = r.assets?.find(a => a.name === name);
     const checksum = r.assets?.find(a => a.name === `${name}.sha512sum`);
-    if (!image || !checksum || !assetUrl(image.browser_download_url, r.tag_name, image.name) ||
-        !assetUrl(checksum.browser_download_url, r.tag_name, checksum.name) ||
+    if (!image || !checksum || !assetUrl(image.browser_download_url, r.tag_name, image.name, repo) ||
+        !assetUrl(checksum.browser_download_url, r.tag_name, checksum.name, repo) ||
         !Number.isSafeInteger(image.size) || image.size < 64 || image.size > 1024 ** 3 ||
         !Number.isSafeInteger(checksum.size) || checksum.size < 1 || checksum.size > 4096) continue;
-    return { version: r.tag_name.slice(1), image, checksum, releaseUrl: `https://github.com/${REPO}/releases/tag/${r.tag_name}` };
+    return { version: r.tag_name.slice(1), image, checksum, releaseUrl: `https://github.com/${repo}/releases/tag/${r.tag_name}` };
   }
   return undefined;
 }
@@ -129,7 +136,7 @@ export class LauncherUpdater {
         await handle.sync();
       } finally { await handle.close(); }
       if (bytes !== candidate.image.size || hash.digest('hex') !== match[1].toLowerCase()) throw new Error('Launcher SHA-512 verification failed. Your current launcher was kept.');
-      if (header.length < 64 || header.subarray(0, 4).toString('hex') !== '7f454c46' || header[4] !== 2 || header[5] !== 1 || header.readUInt16LE(18) !== 62 || header.subarray(8, 11).toString('hex') !== '414902') throw new Error('The update is not an x86_64 AppImage.');
+      if (header.length < 64 || header.subarray(0, 4).toString('hex') !== '7f454c46' || header[4] !== 2 || header[5] !== 1 || header.readUInt16LE(18) !== (ARM_FORK ? 183 : 62) || header.subarray(8, 11).toString('hex') !== '414902') throw new Error(`The update is not an ${ARM_FORK ? 'arm64' : 'x86_64'} AppImage.`);
       const now = await fs.stat(target);
       this.controller.signal.throwIfAborted();
       if (now.ino !== before.ino || now.size !== before.size || now.mtimeMs !== before.mtimeMs || await this.writableImage() !== target) throw new Error('The installed launcher changed during download. Retry the update.');

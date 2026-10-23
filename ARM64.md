@@ -7,8 +7,10 @@ Changes from upstream:
 
 - `src/main/backend-releases.ts`: allow arm64. The backend stays x86_64,
   and FEX runs it through binfmt_misc.
-- `src/main/index.ts`: no launcher self-update on arm64. Upstream releases
-  are x86_64 only, and an update would replace this build.
+- `src/main/launcher-update.ts`: on Linux arm64, the launcher updates itself
+  from the releases of this fork, not from upstream. It accepts tags such as
+  `v0.3.11-arm.2`, takes the `*-arm64.AppImage` asset, and checks for an
+  arm64 ELF file. On other systems, the upstream behavior stays the same.
 - `src/main/steam-cdp.ts`, `src/main/steam-live.ts`: after "Add to Steam",
   also send the artwork to the running Steam client through its CEF debug
   port (127.0.0.1:8080). Decky Loader opens that port. Without it, Steam
@@ -30,10 +32,24 @@ npm run clean
 npm run typecheck
 npx vite build
 npx tsc -p tsconfig.electron.json
-npx electron-builder --linux AppImage --arm64 --publish never
+npx electron-builder --linux AppImage --arm64 --publish never \
+  -c.extraMetadata.version=<upstream version>-arm.<build>
 ```
 
-The result is `release/Xodus-Nexus-<version>-arm64.AppImage`.
+The version must be the same as the release tag without the `v`, for
+example `0.3.11-arm.2` for the tag `v0.3.11-arm.2`. The launcher compares
+its own version with the release tags, so a build with a wrong version does
+not find updates, or finds an update to itself. `package.json` keeps the
+upstream version, so upstream merges do not get a conflict there.
+
+The result is `release/Xodus-Nexus-<upstream version>-arm.<build>-arm64.AppImage`.
+
+## Release
+
+1. Build with the version of the new tag (see above).
+2. Make the checksum file: `shasum -a 512 Xodus-Nexus-<version>-arm64.AppImage > Xodus-Nexus-<version>-arm64.AppImage.sha512sum`.
+3. Tag the commit `v<version>`, and push the tag.
+4. Publish a GitHub release for the tag with both files. Do not mark it as a pre-release: the launcher ignores pre-releases.
 
 ## Upstream updates
 
