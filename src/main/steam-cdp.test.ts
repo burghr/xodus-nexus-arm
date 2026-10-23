@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pushSteamArtworkLive } from './steam-cdp.js';
+import { gamepadLayoutScript, pushSteamArtworkLive, pushSteamGamepadLayoutLive } from './steam-cdp.js';
 
 const image = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('image')]);
 const reply = (body: unknown) => vi.fn(async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
@@ -23,5 +23,24 @@ describe('live Steam artwork', () => {
       { title: 'SharedJSContext', webSocketDebuggerUrl: 'ws://192.0.2.1:8080/devtools/page/B' },
     ];
     expect(await pushSteamArtworkLive(0x80000001, { cover: image }, reply(targets))).toBe(false);
+  });
+});
+
+describe('live Steam gamepad layout', () => {
+  it('does nothing when the Steam debug port is closed, or for an invalid shortcut ID', async () => {
+    const closed = vi.fn(async () => { throw new TypeError('fetch failed'); }) as unknown as typeof fetch;
+    expect(await pushSteamGamepadLayoutLive(0x80000001, closed)).toBe(false);
+    const fetcher = reply([]);
+    expect(await pushSteamGamepadLayoutLive(12, fetcher)).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('builds a script that changes only layouts without a gamepad, to a gamepad template', () => {
+    const script = gamepadLayoutScript(0x80000001);
+    expect(script).toContain(`(${0x80000001})`);
+    expect(script).toContain('bUsesGamepad === false');
+    expect(script).toContain('SetSelectedConfigForApp(app, index, template.URL, false, 0)');
+    // The script must be valid JavaScript.
+    expect(() => new Function(`return ${script}`)).not.toThrow();
   });
 });

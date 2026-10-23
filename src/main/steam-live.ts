@@ -2,13 +2,16 @@ import { execFile } from 'node:child_process';
 import { constants, promises as fs } from 'node:fs';
 import path from 'node:path';
 import { externalLauncherEnvironment } from './launcher-environment.js';
-import { pushSteamArtworkLive } from './steam-cdp.js';
+import { pushSteamArtworkLive, pushSteamGamepadLayoutLive } from './steam-cdp.js';
 import { findSteamLaunches, readSteamShortcuts, writeSteamArtwork as writeArtworkFiles, type SteamLaunch } from './steam-shortcuts.js';
 
-// arm64 fork: also show the artwork in the running Steam client at once.
+// arm64 fork: also show the artwork in the running Steam client at once, and
+// select a gamepad layout if Steam picked one without a gamepad. The layout
+// step takes a few seconds, so it runs in the background.
 async function writeSteamArtwork(config: string, appid: number, artwork: { cover?: Buffer; wide?: Buffer }): Promise<void> {
   await writeArtworkFiles(config, appid, artwork);
   await pushSteamArtworkLive(appid, artwork);
+  void pushSteamGamepadLayoutLive(appid);
 }
 
 let importing = false;
