@@ -29,6 +29,7 @@ import { gameLaunchArguments, preparedGameWine } from './game-launch.js';
 import { prepareGameWrapper, type GameWrapper } from './game-wrapper.js';
 import { normalizeLaunchTools } from '../shared/launch-tools.js';
 import { LauncherUpdater } from './launcher-update.js';
+import { restartInOwnScope } from './launcher-restart.js';
 import { copyDiagnosticFile, diagnosticLogFile, readDiagnosticTail } from './diagnostic-log.js';
 import { BackendDiagnostics, setBackendDiagnostics } from './backend-diagnostics.js';
 import { createDiagnosticReport, reportSystemInfo, saveDiagnosticReport, validateReportContent } from './diagnostic-report.js';
@@ -1264,7 +1265,8 @@ function registerIpc(): void {
       if (externalEnvironment[key] === undefined) delete process.env[key];
       else process.env[key] = externalEnvironment[key];
     }
-    app.relaunch({ execPath: launcherUpdater.targetPath, args: [] }); app.quit();
+    if (!restartInOwnScope(launcherUpdater.targetPath)) app.relaunch({ execPath: launcherUpdater.targetPath, args: [] });
+    app.quit();
   });
   ipcMain.handle('check-game-updates', (_event, id?: string) => {
     if (gameUpdateJob) return gameUpdateJob;
