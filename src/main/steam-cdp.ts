@@ -81,14 +81,27 @@ export function gamepadLayoutScript(appid: number): string {
   // Most controller types have "_gamepad_joystick". The Steam Deck lists its
   // gamepad template as "_gamepad_fps" ("Gamepad With Joystick Trackpad").
   const preferred = ['_gamepad_joystick.vdf', '_gamepad_fps.vdf', '_gamepad+mouse.vdf'];
+  // Some controllers have no templates of their own type, for example the
+  // SteamOS handheld controller of the AYN Odin 3 (type 100). Steam's own
+  // picker offers other types' templates there, so try these next.
+  const fallback = ['controller_android', 'controller_generic', 'controller_xboxone', 'controller_xbox360']
+    .map(name => 'template://' + name + '_gamepad_joystick.vdf').concat('template://gamepad_joystick.vdf');
+  const known = new Set(templates.map(entry => entry && entry.URL));
   let changed = 0;
   for (const { index, config } of change) {
     const own = templates.filter(entry => entry && entry.nControllerType === config.nControllerType &&
       typeof entry.URL === 'string' && entry.URL.startsWith('template://controller_'));
-    const template = preferred.map(suffix => own.find(entry => entry.URL.endsWith(suffix))).find(Boolean);
-    if (!template) continue;
-    input.SetSelectedConfigForApp(app, index, template.URL, false, 0);
-    changed++;
+    const candidates = preferred.map(suffix => own.find(entry => entry.URL.endsWith(suffix))).filter(Boolean).map(entry => entry.URL)
+      .concat(fallback.filter(url => known.has(url)));
+    let done = false;
+    for (const url of [...new Set(candidates)]) {
+      input.SetSelectedConfigForApp(app, index, url, false, 0);
+      await wait(1000);
+      const result = await read(index);
+      if (result && result.bUsesGamepad === true) { done = true; break; }
+    }
+    if (done) changed++;
+    else if (candidates.length && config.URL) input.SetSelectedConfigForApp(app, index, config.URL, false, 0);
   }
   return changed;
 })(${appid})`;

@@ -39,7 +39,8 @@ describe('live Steam gamepad layout', () => {
     const script = gamepadLayoutScript(0x80000001);
     expect(script).toContain(`(${0x80000001})`);
     expect(script).toContain('bUsesGamepad === false');
-    expect(script).toContain('SetSelectedConfigForApp(app, index, template.URL, false, 0)');
+    expect(script).toContain('SetSelectedConfigForApp(app, index, url, false, 0)');
+    expect(script).toContain('result.bUsesGamepad === true');
     // The script must be valid JavaScript.
     expect(() => new Function(`return ${script}`)).not.toThrow();
   });
