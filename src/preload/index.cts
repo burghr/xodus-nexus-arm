@@ -64,6 +64,7 @@ const api: LauncherApi = {
   launchGame: (id: string) => ipcRenderer.invoke('launch-game', id),
   createGameShortcut: (id, destination) => ipcRenderer.invoke('create-game-shortcut', id, destination),
   addToSteam: id => ipcRenderer.invoke('add-to-steam', id),
+  steamLayoutLive: () => ipcRenderer.invoke('steam-layout-live'),
   installGameVcRuntime: (id: string) => ipcRenderer.invoke('install-game-vc-runtime', id),
   cancelGame: () => ipcRenderer.invoke('cancel-game'),
   updateSettings: (patch: Partial<Settings>) => ipcRenderer.invoke('update-settings', patch),

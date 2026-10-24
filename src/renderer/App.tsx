@@ -45,6 +45,7 @@ const emptySnapshot: AppSnapshot = {
 };
 
 type Toast = { kind: 'success' | 'error' | 'info'; message: string };
+const STEAM_LAYOUT_HINT = 'Game added to Steam. If the controller acts as a mouse or keyboard in the game, open the game in Steam, select the controller icon, and choose a Gamepad layout.';
 const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 function errorMessage(error: unknown): string {
@@ -718,8 +719,10 @@ export function LibraryPage({ data, toast, filters, onFiltersChange, selection }
     onRemove: () => openDialog(game, 'remove'),
     onShortcut: destination => {
       setMenu(undefined);
-      void (destination === 'steam' ? window.launcher.addToSteam(game.id) : window.launcher.createGameShortcut(game.id, destination))
-        .then(() => toast({ kind: 'success', message: destination === 'steam' ? 'Game added to Steam with available artwork.' : destination === 'desktop' ? 'Desktop shortcut created. Your desktop may ask you to allow launching it.' : 'Game added to applications menu.' }))
+      // arm64 fork: without the Steam debug port (Decky Loader), Nexus cannot
+      // select a gamepad layout, so tell the user how to change it.
+      void (destination === 'steam' ? window.launcher.addToSteam(game.id).then(() => window.launcher.steamLayoutLive()) : window.launcher.createGameShortcut(game.id, destination).then(() => true))
+        .then(live => toast(destination === 'steam' && !live ? { kind: 'info', message: STEAM_LAYOUT_HINT } : { kind: 'success', message: destination === 'steam' ? 'Game added to Steam with available artwork.' : destination === 'desktop' ? 'Desktop shortcut created. Your desktop may ask you to allow launching it.' : 'Game added to applications menu.' }))
         .catch(error => toast({ kind: 'error', message: errorMessage(error) }));
     },
     onUpdate: () => { setMenu(undefined); if (data.gameUpdates?.[game.id]?.available) void updateInstalledGame(game); else void checkUpdates(game.id); },
@@ -1031,7 +1034,7 @@ export default function App() {
     void window.launcher.getSnapshot().then((value) => { setData(value); setLoading(false); }).catch((error) => { setToast({ kind: 'error', message: errorMessage(error) }); setLoading(false); });
     return window.launcher.onSnapshot(setData);
   }, []);
-  useEffect(() => { if (!toast) return; const timeout = window.setTimeout(() => setToast(undefined), 5000); return () => window.clearTimeout(timeout); }, [toast]);
+  useEffect(() => { if (!toast) return; const timeout = window.setTimeout(() => setToast(undefined), toast.kind === 'info' ? 12000 : 5000); return () => window.clearTimeout(timeout); }, [toast]);
   useEffect(() => {
     // XODUS_DEMO_TOUR=1 cycles through the pages for screenshot capture.
     if (!window.launcher.isDemoTour()) return;
@@ -1066,7 +1069,7 @@ export default function App() {
       <header className="topbar"><GlobalSearch games={data.games} page={page} query={search} change={setSearch} submit={value => { setSubmittedSearch(value); setPage('store'); }} select={openLibraryGame} /><TopStatus data={data} go={setPage} /></header>
       <div className="page-scroll">{page === 'home' ? <HomePage data={data} go={setPage} action={action} /> : null}{page === 'store' ? <StorePage data={data} toast={setToast} go={setPage} initialQuery={submittedSearch} /> : null}{page === 'library' ? <LibraryPage data={data} toast={setToast} filters={libraryFilters} onFiltersChange={changeLibraryFilters} selection={librarySelection} /> : null}{page === 'downloads' ? <DownloadsPage data={data} toast={setToast} /> : null}{page === 'settings' ? <SettingsPage data={data} toast={setToast} /> : null}</div>
     </section>
-    {toast ? <div className={`toast ${toast.kind}`}>{toast.kind === 'success' ? <Check /> : toast.kind === 'error' ? <CircleAlert /> : <Terminal />}<span>{toast.message}</span><button onClick={() => setToast(undefined)}><X /></button></div> : null}
+    {toast ? <div className={`toast ${toast.kind}`}>{toast.kind === 'success' ? <Check /> : toast.kind === 'error' || toast.kind === 'info' ? <CircleAlert /> : <Terminal />}<span>{toast.message}</span><button onClick={() => setToast(undefined)}><X /></button></div> : null}
   </div><GamepadNavigation back={() => setPage('home')} page={delta => setPage(current => {
     const pages: Page[] = ['home', 'library', 'store'];
     const index = pages.indexOf(current);

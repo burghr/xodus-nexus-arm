@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { gamepadLayoutScript, pushSteamArtworkLive, pushSteamGamepadLayoutLive } from './steam-cdp.js';
+import { gamepadLayoutScript, pushSteamArtworkLive, pushSteamGamepadLayoutLive, steamDebugPortOpen } from './steam-cdp.js';
 
 const image = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.from('image')]);
 const reply = (body: unknown) => vi.fn(async () => new Response(JSON.stringify(body))) as unknown as typeof fetch;
@@ -27,6 +27,13 @@ describe('live Steam artwork', () => {
 });
 
 describe('live Steam gamepad layout', () => {
+  it('reports the Steam debug port as open only for Steam\'s shared context', async () => {
+    const closed = vi.fn(async () => { throw new TypeError('fetch failed'); }) as unknown as typeof fetch;
+    expect(await steamDebugPortOpen(closed)).toBe(false);
+    expect(await steamDebugPortOpen(reply([{ title: 'Other', webSocketDebuggerUrl: 'ws://127.0.0.1:8080/devtools/page/1' }]))).toBe(false);
+    expect(await steamDebugPortOpen(reply([{ title: 'SharedJSContext', webSocketDebuggerUrl: 'ws://127.0.0.1:8080/devtools/page/1' }]))).toBe(true);
+  });
+
   it('does nothing when the Steam debug port is closed, or for an invalid shortcut ID', async () => {
     const closed = vi.fn(async () => { throw new TypeError('fetch failed'); }) as unknown as typeof fetch;
     expect(await pushSteamGamepadLayoutLive(0x80000001, closed)).toBe(false);

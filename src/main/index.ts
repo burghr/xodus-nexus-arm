@@ -58,6 +58,7 @@ import { openDesktopTarget } from './desktop-open.js';
 import { addSteamShortcut, steamAccounts, steamRunning } from './steam-shortcuts.js';
 import { gameSteamPortrait, nexusSteamArtwork } from './steam-artwork.js';
 import { addLiveSteamShortcut } from './steam-live.js';
+import { steamDebugPortOpen } from './steam-cdp.js';
 import { DownloadCompletionNotifications } from './download-notifications.js';
 import { KeyringSupport } from './keyring.js';
 import { WalletUnlocker } from './keyring-unlock.js';
@@ -1491,6 +1492,8 @@ function registerIpc(): void {
     }
     return addSteamShortcut(accounts[selected], launch, artwork);
   });
+  // arm64 fork: tell the window if Nexus could check the controller layout.
+  ipcMain.handle('steam-layout-live', () => steamDebugPortOpen());
   ipcMain.handle('create-game-shortcut', async (_event, id: string, destination: ShortcutDestination) => {
     const game = store.games.find(entry => entry.id === id);
     if (!game) throw new Error('Game not found.');

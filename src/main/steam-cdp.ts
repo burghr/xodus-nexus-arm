@@ -107,6 +107,12 @@ export function gamepadLayoutScript(appid: number): string {
 })(${appid})`;
 }
 
+/** True if the Steam debug port is open (Decky Loader opens it). Without
+ * it, Nexus cannot change the controller layout of a new shortcut. */
+export async function steamDebugPortOpen(fetcher: typeof fetch = fetch): Promise<boolean> {
+  try { return Boolean(await steamContext(fetcher)); } catch { return false; }
+}
+
 export async function pushSteamGamepadLayoutLive(appid: number, fetcher: typeof fetch = fetch): Promise<boolean> {
   if (!validAppId(appid)) return false;
   try {
