@@ -7,6 +7,7 @@ import { prepareManagedPrefix } from './managed-prefix.js';
 import { systemGameLocale } from './game-locale.js';
 import { windowsGameLocale } from '../shared/game-language.js';
 import { prepareShaderCache } from './shader-cache.js';
+import { gamingServicesVersionApplied } from './gaming-services-version.js';
 import { DEFAULT_SHADER_CACHE_GIB, shaderCacheLimits } from '../shared/shader-cache.js';
 
 function shellQuote(value: string): string {
@@ -440,6 +441,7 @@ export async function prepareProtonRunner(
   const eacRuntime = await installedEacRuntime(steamRoot);
   // Keep the caches outside temporary launch views, separately for each prefix.
   const shaderCaches = await prepareShaderCache(compatibilityDataPath);
+  const gamingServicesApplied = await gamingServicesVersionApplied(path.join(compatibilityDataPath, 'pfx'));
   const defaultEnvironment = (name: string, value: string) => [
     `if [ "\${${name}+x}" != x ]; then`,
     `  export ${name}=${shellQuote(value)}`,
@@ -466,6 +468,8 @@ export async function prepareProtonRunner(
     `export PATH=${shellQuote(executablePath)}`,
     `export WINEDLLOVERRIDES='dxgi=n;d3d11=n;d3d10core=n;d3d9=n;d3d12=n;d3d12core=n${http2Runtime ? ';winhttp=b;libnghttp2=n' : ''}${dxvkRuntime ? ';d3d8=n' : ''}'`,
     "export WINE_LARGE_ADDRESS_AWARE='1'",
+    // arm64 fork: skip the extra Wine session when the prefix has the value.
+    ...(gamingServicesApplied ? defaultEnvironment('NEXUS_GAMING_SERVICES_VERSION_OVERRIDE', '0') : []),
     // Preserve each explicit setting, including disabled/empty values. Limits
     // apply only when selecting our managed driver directory, not a custom one.
     ...defaultEnvironment('VKD3D_SHADER_CACHE_PATH', shaderCaches.vkd3d),
